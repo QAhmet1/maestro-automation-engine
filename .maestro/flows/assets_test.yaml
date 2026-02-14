@@ -1,0 +1,35 @@
+appId: com.anonymous.QATestApp-New
+name: "Assets & Tools Regression"
+---
+- launchApp:
+    clearState: true
+# --- LOGIN FLOW---
+- runFlow:
+    when:
+      notVisible:
+        id: "tab-dash"
+    file: ../subflows/auth_actions.yaml
+    env:
+      # .env'den gelen global değişkenleri alt dosyaya aktarıyoruz
+      SUB_USER: ${ENGINEER_ID}
+      SUB_PASS: ${SECURITY_TOKEN}
+
+# --- NAVIGATE TO ASSETS ---
+- tapOn:
+    id: "tab-assets"
+# --- VERIFY ASSETS UI ELEMENTS ---
+- assertVisible: "section-web-automation"
+- assertVisible: "tool-item-playwright"
+- assertVisible: "tool-item-cypress"
+- assertVisible: "tool-item-webdriverio"
+- assertVisible: "tool-item-selenium"
+- assertVisible: "section-mobile-automation"
+- assertVisible: "tool-item-appium"
+- assertVisible: "tool-item-maestro"
+- assertVisible: "section-performance-testing"
+- assertVisible: "tool-item-jmeter"
+- assertVisible: "tool-item-k6"
+
+# --- LOGOUT SUBFLOW CALL---
+- runFlow:
+    file: ../subflows/logout_actions.yaml

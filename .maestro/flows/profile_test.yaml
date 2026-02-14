@@ -1,0 +1,69 @@
+appId: com.anonymous.QATestApp-New
+name: "User Profile & Settings Regression"
+
+---
+- launchApp:
+    clearState: true
+# --- LOGIN FLOW---
+- runFlow:
+    when:
+      notVisible:
+        id: "tab-dash"
+    file: ../subflows/auth_actions.yaml
+    env:
+      SUB_USER: ${ENGINEER_ID}
+      SUB_PASS: ${SECURITY_TOKEN}
+# --- NAVIGATE TO PROFILE---
+- tapOn:
+    id: "tab-profile"
+# --- VERIFY PROFILE UI---
+- assertVisible: "profile-avatar"
+- assertVisible: "profile-name"
+- assertVisible: "Enable Performance Logs"
+- assertVisible: "1"
+- assertVisible: "switch-perf-logs"
+
+# --- SWITCH PERFORMANS FLOW---
+
+- tapOn:
+    id: "switch-perf-logs"
+- assertVisible:
+    text: "0"
+    index: 0
+
+# Verify Light mode is default
+# --- VERIFY LIGHT MODE DEFAULT ---
+- assertVisible:
+    text: "0"
+    index: 1
+
+# Enable Dark Mode
+# --- ENABLE DARK MODE ---
+
+- tapOn:
+    id: "switch-dark-mode"
+- assertVisible: "1"
+
+# --- VERIFY LOGOUT BUTTON ---
+- assertVisible: "btn-logout"
+
+
+# --- LOGOUT---
+- tapOn:
+    id: "btn-logout"
+# --- VERIFY LOGOUT SUCCESS ---
+- assertVisible: "STATUS_CODE_200"
+- assertVisible: "Session terminated. You logged out."
+- assertVisible: "OK"
+
+#Close the pop-up
+
+# --- CLOSE LOGOUT SUCCESS POPUP ---
+- tapOn: "OK"
+
+# --- VERIFY LOGIN UI ELEMENTS ARE VISIBLE ---
+- assertVisible: "input-engineer-id"
+- assertVisible: "input-security-token"
+- assertVisible: "btn-login"
+
+

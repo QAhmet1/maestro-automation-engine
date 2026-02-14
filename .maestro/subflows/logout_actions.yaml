@@ -1,0 +1,18 @@
+appId: com.anonymous.QATestApp-New
+---
+# Navigate to profile tab
+- tapOn:
+    id: "tab-profile"
+# Logout
+- tapOn:
+    id: "btn-logout" #
+- assertVisible: "STATUS_CODE_200"
+- assertVisible: "Session terminated. You logged out."
+- assertVisible: "OK"
+
+# Close the pop-up
+- tapOn: "OK"
+
+# Verify back to Login Screen
+- assertVisible: "input-engineer-id" #
+- assertVisible: "btn-login" #

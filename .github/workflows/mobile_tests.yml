@@ -1,0 +1,69 @@
+name: Maestro Mobile Regression
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch: # Manuel tetikleme için
+
+jobs:
+  ios-regression:
+    # [English] macOS is required to run iOS Simulator or Android Emulator with hardware acceleration
+    runs-on: macos-latest 
+    
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install Dependencies
+        run: |
+          npm install
+          pip install --upgrade pip
+
+      - name: Install Maestro
+        run: |
+          # [English] Official Maestro installation script
+          curl -Ls "https://get.maestro.mobile.dev" | bash
+          echo "$HOME/.maestro/bin" >> $GITHUB_PATH
+
+      - name: List iOS Simulators
+        run: xcrun simctl list devices available
+
+      - name: Run Maestro Regression
+        run: |
+          # [English] We use your custom regression script which handles:
+          # 1. Cleaning old reports
+          # 2. Running Maestro flows
+          # 3. Running your Python script to enrich Allure results
+          # 4. Generating the final Allure report
+          npm run regression
+        env:
+          ENGINEER_ID: ${{ secrets.ENGINEER_ID }}
+          SECURITY_TOKEN: ${{ secrets.SECURITY_TOKEN }}
+
+      - name: Upload Allure Report Artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: allure-report
+          path: allure-report/
+          retention-days: 7
+
+      - name: Deploy to GitHub Pages
+        if: always()
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./allure-report

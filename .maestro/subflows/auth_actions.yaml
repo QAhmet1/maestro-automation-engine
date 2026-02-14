@@ -1,0 +1,12 @@
+appId: com.anonymous.QATestApp-New
+---
+- tapOn:
+    id: "input-engineer-id"
+- inputText: "${SUB_USER}"
+
+- tapOn:
+    id: "input-security-token"
+- inputText: "${SUB_PASS}"
+
+- tapOn:
+    id: "btn-login"

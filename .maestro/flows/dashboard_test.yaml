@@ -1,0 +1,33 @@
+appId: com.anonymous.QATestApp-New
+name: "Dashboard Regression"
+---
+- launchApp:
+    clearState: true
+# --- LOGIN FLOW---
+- runFlow:
+    when:
+      notVisible:
+        id: "tab-dash"
+    file: ../subflows/auth_actions.yaml
+    env:
+    
+      SUB_USER: ${ENGINEER_ID}
+      SUB_PASS: ${SECURITY_TOKEN}
+
+# --- NAVIGATE TO DASHBOARD---
+- tapOn:
+    id: "tab-dash"
+# --- VERIFY DASHBOARD UI---
+- assertVisible: "home-title"
+- assertVisible:
+    id: "coverage-card"
+- assertVisible: "coverage-card"
+- assertVisible: "progress-bar-fill"
+- assertVisible: "coverage-percentage"
+- assertVisible: "Global Test Coverage"
+- assertVisible: "stat-passed"
+- assertVisible: "stat-failed"
+
+# --- LOGOUT SUBFLOW CALL---
+- runFlow:
+    file: ../subflows/logout_actions.yaml

@@ -1,0 +1,16 @@
+{
+  "name": "my-maestro-framework",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "clean:reports": "rm -rf allure-results allure-report && mkdir -p allure-results",
+    "report:gen": "allure generate allure-results --clean -o allure-report",
+    "report:open": "allure open allure-report",
+    "maestro:dashboard": "bash ./scripts/run_dashboard_test.sh",
+    "maestro:assets": "bash ./scripts/run_assets_test.sh",
+    "maestro:profile": "bash ./scripts/run_profile_test.sh",
+    "maestro:all": "npm run maestro:dashboard && npm run maestro:assets && npm run maestro:profile",
+    "regression": "npm run clean:reports && bash ./scripts/regression.sh && python3 ./scripts/allure_enrich_steps.py && bash ./scripts/allure_metadata.sh && npm run report:gen && npm run report:open"
+  }
+}
+
