@@ -4,16 +4,13 @@ on:
   push:
     branches: [ main ]
   schedule:
-    # [English] Runs at 06:00 UTC every day, which is 07:00 AM Brussels time.
+    # 06:00 UTC daily (e.g. 07:00 Brussels, 09:00 Istanbul)
     - cron: '0 6 * * *'
-  workflow_dispatch: # Allows you to run the tests manually from the Actions tab.
+  workflow_dispatch:
 
 jobs:
   ios-regression:
-    # [English] macOS is mandatory for running the iOS Simulator.
     runs-on: macos-latest
-    
-    # [English] Granting write permissions so the bot can publish the Allure report to gh-pages.
     permissions:
       contents: write
 
@@ -34,30 +31,50 @@ jobs:
 
       - name: Install Dependencies
         run: |
-          # [English] Installing npm packages and ensuring a lockfile exists for stability.
           npm install
           pip install --upgrade pip
 
       - name: Install Maestro
         run: |
-          # [English] Downloading and adding Maestro to the system PATH.
           curl -Ls "https://get.maestro.mobile.dev" | bash
           echo "$HOME/.maestro/bin" >> $GITHUB_PATH
+          echo "$HOME/.maestro/bin" >> $GITHUB_ENV
 
       - name: Start iOS Simulator
         run: |
-          # [English] Booting the iPhone 17 simulator as seen in your available devices list.
-          # The 'waitready' command ensures the simulator is fully up before tests start.
-          xcrun simctl boot "iPhone 17"
-          xcrun simctl waitready "iPhone 17"
+          # Prefer iPhone 17, fallback to iPhone 16 (available on macos-latest)
+          for name in "iPhone 17" "iPhone 16" "iPhone 15"; do
+            if xcrun simctl list devices available | grep -q "$name"; then
+              xcrun simctl boot "$name" 2>/dev/null || true
+              xcrun simctl waitready "$name"
+              echo "Booted $name"
+              exit 0
+            fi
+          done
+          echo "No suitable iPhone simulator found"
+          xcrun simctl list devices available
+          exit 1
 
-      - name: Run Maestro Regression
+      - name: Clean and Run Maestro Regression
+        id: regression
         run: |
-          # [English] Triggering your custom engine that runs flows and cleans up "Unknown" labels.
-          npm run regression
+          npm run clean:reports
+          bash ./scripts/regression.sh
         env:
           ENGINEER_ID: ${{ secrets.ENGINEER_ID }}
           SECURITY_TOKEN: ${{ secrets.SECURITY_TOKEN }}
+
+      - name: Generate Allure Report
+        if: always()
+        run: |
+          python3 ./scripts/allure_enrich_steps.py
+          bash ./scripts/allure_metadata.sh
+          npm run report:gen
+          # Ensure directory exists for deploy (avoid cp: no such file or directory)
+          mkdir -p allure-report
+          if [ ! -f allure-report/index.html ]; then
+            echo '<!DOCTYPE html><html><body><p>No test results.</p></body></html>' > allure-report/index.html
+          fi
 
       - name: Upload Allure Report Artifact
         if: always()
@@ -71,6 +88,6 @@ jobs:
         if: always()
         uses: peaceiris/actions-gh-pages@v3
         with:
-          # [English] This publishes the 'allure-report' folder to the 'gh-pages' branch.
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./allure-report
+          force_orphan: true
