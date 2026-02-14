@@ -4,7 +4,7 @@ on:
   push:
     branches: [ main ]
   schedule:
-    # 06:00 UTC daily (e.g. 07:00 Brussels, 09:00 Istanbul)
+    # [English] 06:00 UTC daily (07:00 Brussels)
     - cron: '0 6 * * *'
   workflow_dispatch:
 
@@ -36,28 +36,26 @@ jobs:
 
       - name: Install Maestro
         run: |
+          # [English] Improved installation to avoid PATH errors
           curl -Ls "https://get.maestro.mobile.dev" | bash
-          echo "$HOME/.maestro/bin" >> $GITHUB_PATH
-          echo "$HOME/.maestro/bin" >> $GITHUB_ENV
+          echo "${HOME}/.maestro/bin" >> $GITHUB_PATH
 
       - name: Start iOS Simulator
         run: |
-          # Prefer iPhone 17, fallback to iPhone 16 (available on macos-latest)
-          for name in "iPhone 17" "iPhone 16" "iPhone 15"; do
-            if xcrun simctl list devices available | grep -q "$name"; then
-              xcrun simctl boot "$name" 2>/dev/null || true
-              xcrun simctl waitready "$name"
-              echo "Booted $name"
-              exit 0
-            fi
-          done
-          echo "No suitable iPhone simulator found"
-          xcrun simctl list devices available
-          exit 1
+          # [English] Prefer iPhone 17 (your local setup), fallback to iPhone 16
+          DEVICE="iPhone 17"
+          if ! xcrun simctl list devices available | grep -q "$DEVICE"; then
+            DEVICE="iPhone 16"
+          fi
+          
+          echo "Booting $DEVICE..."
+          xcrun simctl boot "$DEVICE" || true
+          xcrun simctl waitready "$DEVICE"
+          echo "$DEVICE is ready!"
 
       - name: Clean and Run Maestro Regression
-        id: regression
         run: |
+          # [English] Running your core engine
           npm run clean:reports
           bash ./scripts/regression.sh
         env:
@@ -67,22 +65,12 @@ jobs:
       - name: Generate Allure Report
         if: always()
         run: |
+          # [English] Enriching and generating the final report
           python3 ./scripts/allure_enrich_steps.py
           bash ./scripts/allure_metadata.sh
           npm run report:gen
-          # Ensure directory exists for deploy (avoid cp: no such file or directory)
           mkdir -p allure-report
-          if [ ! -f allure-report/index.html ]; then
-            echo '<!DOCTYPE html><html><body><p>No test results.</p></body></html>' > allure-report/index.html
-          fi
-
-      - name: Upload Allure Report Artifact
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: allure-report-artifact
-          path: allure-report/
-          retention-days: 7
+          [ -f allure-report/index.html ] || echo "<h1>No Results</h1>" > allure-report/index.html
 
       - name: Deploy to GitHub Pages
         if: always()
