@@ -2,16 +2,21 @@ name: Maestro Mobile Regression
 
 on:
   push:
-    branches: [ main, master ]
-  pull_request:
-    branches: [ main, master ]
-  workflow_dispatch: # Manuel tetikleme için
+    branches: [ main ]
+  schedule:
+    # [English] Runs at 06:00 UTC every day, which is 07:00 AM Brussels time.
+    - cron: '0 6 * * *'
+  workflow_dispatch: # Allows you to run the tests manually from the Actions tab.
 
 jobs:
   ios-regression:
-    # [English] macOS is required to run iOS Simulator or Android Emulator with hardware acceleration
-    runs-on: macos-latest 
+    # [English] macOS is mandatory for running the iOS Simulator.
+    runs-on: macos-latest
     
+    # [English] Granting write permissions so the bot can publish the Allure report to gh-pages.
+    permissions:
+      contents: write
+
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -29,25 +34,26 @@ jobs:
 
       - name: Install Dependencies
         run: |
+          # [English] Installing npm packages and ensuring a lockfile exists for stability.
           npm install
           pip install --upgrade pip
 
       - name: Install Maestro
         run: |
-          # [English] Official Maestro installation script
+          # [English] Downloading and adding Maestro to the system PATH.
           curl -Ls "https://get.maestro.mobile.dev" | bash
           echo "$HOME/.maestro/bin" >> $GITHUB_PATH
 
-      - name: List iOS Simulators
-        run: xcrun simctl list devices available
+      - name: Start iOS Simulator
+        run: |
+          # [English] Booting the iPhone 17 simulator as seen in your available devices list.
+          # The 'waitready' command ensures the simulator is fully up before tests start.
+          xcrun simctl boot "iPhone 17"
+          xcrun simctl waitready "iPhone 17"
 
       - name: Run Maestro Regression
         run: |
-          # [English] We use your custom regression script which handles:
-          # 1. Cleaning old reports
-          # 2. Running Maestro flows
-          # 3. Running your Python script to enrich Allure results
-          # 4. Generating the final Allure report
+          # [English] Triggering your custom engine that runs flows and cleans up "Unknown" labels.
           npm run regression
         env:
           ENGINEER_ID: ${{ secrets.ENGINEER_ID }}
@@ -57,7 +63,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: allure-report
+          name: allure-report-artifact
           path: allure-report/
           retention-days: 7
 
@@ -65,5 +71,6 @@ jobs:
         if: always()
         uses: peaceiris/actions-gh-pages@v3
         with:
+          # [English] This publishes the 'allure-report' folder to the 'gh-pages' branch.
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./allure-report
