@@ -42,7 +42,7 @@ jobs:
 
       - name: Start iOS Simulator
         run: |
-          # [English] Prefer iPhone 17 (your local setup), fallback to iPhone 16
+          # [English] Use iPhone 17 or fallback to iPhone 16
           DEVICE="iPhone 17"
           if ! xcrun simctl list devices available | grep -q "$DEVICE"; then
             DEVICE="iPhone 16"
@@ -50,8 +50,22 @@ jobs:
           
           echo "Booting $DEVICE..."
           xcrun simctl boot "$DEVICE" || true
-          xcrun simctl waitready "$DEVICE"
-          echo "$DEVICE is ready!"
+          
+          # [English] Robust wait logic: Check if the device status is 'Booted'
+          # This replaces the unrecognized 'waitready' command.
+          echo "Waiting for $DEVICE to boot..."
+          for i in {1..30}; do
+            PLAYER_STATE=$(xcrun simctl list devices | grep "$DEVICE" | grep -o "Booted" || true)
+            if [ "$PLAYER_STATE" == "Booted" ]; then
+              echo "$DEVICE is booted!"
+              sleep 10 # Extra cushion for system services
+              exit 0
+            fi
+            echo "Still waiting... ($i/30)"
+            sleep 5
+          done
+          echo "Timeout waiting for simulator"
+          exit 1
 
       - name: Clean and Run Maestro Regression
         run: |
